@@ -19,11 +19,14 @@ from capstone import Cs, CS_ARCH_ARM64, CS_MODE_ARM
 def parse_kallsyms(path: str) -> dict[str, int]:
     """Parse a kallsyms.txt file into {symbol_name: address} dict."""
     symbols = {}
+    line_re = re.compile(r"^([0-9a-fA-F]+)\s+[a-zA-Z?]\s+(\S+)")
     with open(path) as f:
         for line in f:
-            parts = line.strip().split(maxsplit=2)
-            if len(parts) == 3:
-                symbols[parts[2]] = int(parts[0], 16)
+            m = line_re.match(line)
+            if m:
+                addr = int(m.group(1), 16)
+                name = m.group(2)
+                symbols[name] = addr
     return symbols
 
 
@@ -36,9 +39,8 @@ def lookup(symbols: dict[str, int], name: str) -> int:
 
 def lookup_prefix(symbols: dict[str, int], prefix: str, *, exclude_jt: bool = False) -> int:
     """
-    Look up a symbol by prefix match — handles kCFI and LLVM suffixes like
-    'ashmem_ioctl$94e7f5232abcc7a2c44808354c7d925d' or
-    'configfs_read_file.llvm.1166849574682616323'.
+    Look up a symbol by prefix match — handles kCFI suffixes like
+    'ashmem_ioctl$94e7f5232abcc7a2c44808354c7d925d'.
     If exclude_jt is True, skip '.cfi_jt' entries (return raw function addr).
     """
     matches = [(n, a) for n, a in symbols.items()
@@ -47,39 +49,30 @@ def lookup_prefix(symbols: dict[str, int], prefix: str, *, exclude_jt: bool = Fa
     if not matches:
         raise KeyError(f"symbol with prefix '{prefix}' not found in kallsyms")
     if len(matches) > 1:
-        # If exact match among candidates, prefer it
-        exact = [m for m in matches if m[0] == prefix]
-        if len(exact) == 1:
-            return exact[0][1]
         names = [m[0] for m in matches[:5]]
-        # If multiple have the same prefix (e.g. .llvm.), pick first if unambiguous stem
-        return matches[0][1]
+        raise KeyError(
+            f"prefix '{prefix}' matches {len(matches)} symbols: {names}..."
+        )
     return matches[0][1]
 
 
 def lookup_func(symbols: dict[str, int], name: str) -> int:
     """
-    Try exact match first, then prefix match with '$', '.llvm.', and '.' for compiler-suffixed builds.
+    Try exact match first, then prefix match with '$' for kCFI-suffixed builds.
     """
     if name in symbols:
         return symbols[name]
-    for sep in ("$", ".llvm.", "."):
-        try:
-            return lookup_prefix(symbols, name + sep, exclude_jt=True)
-        except KeyError:
-            continue
-    raise KeyError(f"symbol '{name}' (or suffixed variant) not found in kallsyms")
+    return lookup_prefix(symbols, name + "$", exclude_jt=True)
 
 
 def lookup_jt(symbols: dict[str, int], name: str) -> int:
     """
-    Look up the CFI jump-table entry. Falls back to raw function on non-CFI or KCFI.
+    Look up the CFI jump-table entry. Falls back to raw function on non-CFI.
     """
-    for sep in ("$", ".llvm.", "."):
-        matches = [(n, a) for n, a in symbols.items()
-                   if n.startswith(name + sep) and ".cfi_jt" in n]
-        if matches:
-            return matches[0][1]
+    matches = [(n, a) for n, a in symbols.items()
+               if n.startswith(name + "$") and ".cfi_jt" in n]
+    if matches:
+        return matches[0][1]
     jt_name = name + ".cfi_jt"
     if jt_name in symbols:
         return symbols[jt_name]
@@ -113,9 +106,6 @@ class ImageReader:
 
     def _file_off(self, virt_addr: int) -> int:
         return virt_addr - self.text_base
-
-    def _read_u32(self, file_off: int) -> int:
-        return struct.unpack_from("<I", self._data, file_off)[0]
 
     def _read_u64(self, file_off: int) -> int:
         return struct.unpack_from("<Q", self._data, file_off)[0]
@@ -157,42 +147,6 @@ class ImageReader:
         raise ValueError(
             f"no bl to {callee_names} found in first 0x800 bytes of '{caller_name}'"
         )
-
-    def resolve_trace_event_id(self, event_name: str) -> int:
-        """
-        Derive dynamic trace event ID statically using Capstone and _ftrace_events table:
-        1. Disassemble register_trace_event to find dynamic ID base (typically 17 / 0x11).
-        2. Walk the _ftrace_events array between __start_ftrace_events and __stop_ftrace_events.
-        3. Index of event_call in _ftrace_events + base_id = runtime event_id.
-        """
-        base_id = 17
-        try:
-            reg_addr = lookup_func(self.symbols, "register_trace_event")
-            file_off = self._file_off(reg_addr)
-            code = self._data[file_off : file_off + 0x200]
-            md = Cs(CS_ARCH_ARM64, CS_MODE_ARM)
-            md.detail = True
-            for insn in md.disasm(code, reg_addr):
-                if insn.mnemonic == "mov" and len(insn.operands) == 2 and insn.operands[1].type == 2:
-                    imm = insn.operands[1].imm
-                    if 10 <= imm <= 32:
-                        base_id = imm
-                        break
-        except Exception:
-            pass
-
-        event_call_addr = lookup(self.symbols, event_name)
-        start_addr = lookup(self.symbols, "__start_ftrace_events")
-        stop_addr = lookup(self.symbols, "__stop_ftrace_events")
-        num_events = (stop_addr - start_addr) // 8
-        file_base = self._file_off(start_addr)
-
-        for i in range(num_events):
-            ptr = self._read_u64(file_base + i * 8)
-            if ptr == event_call_addr:
-                return base_id + i
-
-        raise ValueError(f"'{event_name}' not found in _ftrace_events array")
 
 
 # ---------------------------------------------------------------------------
@@ -242,15 +196,6 @@ def compute_values(symbols: dict[str, int], config: dict[str, str], img: ImageRe
         print(f"  WARNING: {e} — SLIDE_TRACEFS_WORKER_CALLER_OFF will not be patched")
         slide_tracefs_worker_caller_off = None
         schedule_delta = None
-
-    # ---- TraceFS event ID ----
-    try:
-        event_id = img.resolve_trace_event_id("event_sched_blocked_reason")
-        print(f"  event_sched_blocked_reason event_id = {event_id} (0x{event_id:02x}) (capstone + _ftrace_events)")
-    except Exception as e:
-        print(f"  WARNING: Could not extract SLIDE_TRACEFS_EVENT_ID: {e}")
-        event_id = None
-
     # ---- random_table[4].data ----
     random_boot_id_off = img.resolve_field_offset("random_table", "sysctl_bootid")
     slide_random_boot_id_data_off = _off(lookup(symbols, "random_table")) + random_boot_id_off
@@ -301,7 +246,6 @@ def compute_values(symbols: dict[str, int], config: dict[str, str], img: ImageRe
         "SLIDE_INIT_TASK_OFF":           "#define SLIDE_INIT_TASK_OFF            INIT_TASK_OFF",
         "SLIDE_ROOT_TASK_GROUP_OFF":     "#define SLIDE_ROOT_TASK_GROUP_OFF      ROOT_TASK_GROUP_OFF",
         "SLIDE_TRACEFS_WORKER_CALLER_OFF": (h(slide_tracefs_worker_caller_off), schedule_delta) if slide_tracefs_worker_caller_off is not None else None,
-        "SLIDE_TRACEFS_EVENT_ID":         str(event_id) if event_id is not None else None,
 
         # kCFI canonical (.cfi_jt)
         "ASHMEM_IOCTL_JT_OFF":           h(_off(lookup_jt(symbols, "ashmem_ioctl"))),
@@ -327,30 +271,26 @@ def patch_template(template_path: str, values: dict[str, str], output_path: str)
     """Read template, replace hex values in known #define lines, write output.
     Preserves original whitespace, comments, and formatting exactly."""
     def_re = re.compile(r"^(#define\s+(\w+)\s+)0x[0-9a-fA-F]+")
-    def_dec_re = re.compile(r"^(#define\s+(\w+)\s+)\d+")
     with open(template_path) as f:
         lines = f.readlines()
 
     patched = []
     for line in lines:
         m = def_re.match(line)
-        m_dec = def_dec_re.match(line) if not m else None
-        match_obj = m or m_dec
-        if match_obj and match_obj.group(2) in values and values[match_obj.group(2)] is not None:
-            val = values[match_obj.group(2)]
+        if m and m.group(2) in values and values[m.group(2)] is not None:
+            val = values[m.group(2)]
             if isinstance(val, tuple):
                 new_hex, delta = val
-                tail = re.sub(r"worker_thread\+\d+", f"worker_thread+{delta}", line[match_obj.end():])
-                new_line = f"{match_obj.group(1)}0x{new_hex}{tail}"
-            elif m_dec:
-                new_line = f"{match_obj.group(1)}{val}{line[match_obj.end():]}"
+                tail = re.sub(r"worker_thread\+\d+", f"worker_thread+{delta}", line[m.end():])
+                new_line = f"{m.group(1)}0x{new_hex}{tail}"
             else:
-                new_line = f"{match_obj.group(1)}0x{val}{line[match_obj.end():]}"
+                new_line = f"{m.group(1)}0x{val}{line[m.end():]}"
             if new_line != line:
-                print(f"  PATCH {match_obj.group(2)}")
+                print(f"  PATCH {m.group(2)}")
             patched.append(new_line)
         else:
             patched.append(line)
+
     with open(output_path, "w") as f:
         f.writelines(patched)
 
