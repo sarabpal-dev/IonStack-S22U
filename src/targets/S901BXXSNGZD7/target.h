@@ -31,7 +31,7 @@
 #define KIMAGE_TEXT_BASE 0xffffffc008000000ULL
 #define P0_PAGE_OFFSET   0xffffff8000000000ULL   /* 39-bit VA PAGE_OFFSET     */
 #define P0_PHYS_OFFSET   0x80000000ULL           /* memstart_addr             */
-#define P0_KERNEL_PHYS_LOAD 0xa8000000ULL        /* Kernel code phys start    */
+#define P0_KERNEL_PHYS_LOAD 0x80000000ULL        /* exact GZD7 sboot pre-slide kernel base */
 
 #define KERNELSNITCH_IDENTITY_START 0xffffff8000000000ULL
 #define KERNELSNITCH_IDENTITY_END   0xffffff9000000000ULL   /* 64GB direct map */

