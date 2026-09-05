@@ -1,0 +1,12 @@
+IonStack-S22U
+Copyright 2026 sarabpal-dev (https://github.com/sarabpal-dev)
+
+This product includes software developed by sarabpal-dev (https://github.com/sarabpal-dev/IonStack-S22U).
+
+Portions of this software are based on:
+- NebuSec/CyberMeowfia — IonStack/CVE-2026-43499/exploit (Apache-2.0)
+  https://github.com/NebuSec/CyberMeowfia/tree/b850d3bddc74c3328d5fbcc0568d21962b55d949/IonStack/CVE-2026-43499/exploit
+- BuSung-dev/CVE-2026-43499-S25U (Apache-2.0)
+  https://github.com/BuSung-dev/CVE-2026-43499-S25U
+- F-19-F/IonStackQuest3
+  https://github.com/F-19-F/IonStackQuest3

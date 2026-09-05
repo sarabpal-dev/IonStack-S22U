@@ -44,7 +44,7 @@ This port is based on the exploit implementation published in:
 Special thanks to:
 - [F-19-F/IonStackQuest3](https://github.com/F-19-F/IonStackQuest3)
 
-The upstream Apache License 2.0 is retained in [LICENSE](LICENSE).
+The upstream Apache License 2.0 is retained in [LICENSE](LICENSE), and attribution requirements are specified in [NOTICE](NOTICE).
 
 ## Main porting changes
 
