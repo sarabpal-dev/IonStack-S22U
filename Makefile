@@ -57,8 +57,12 @@ BUILDROOT_SYSROOT := $(BUILDROOT_DIR)/aarch64-buildroot-linux-gnu/sysroot
 
 DEFAULT_NDK_ROOT := $(or $(wildcard $(HOME)/Android/Sdk/ndk/27.2.12479018),$(HOME)/android-ndk-cache/android-ndk-r29)
 NDK_ROOT ?= $(or $(ANDROID_NDK_HOME),$(ANDROID_NDK_ROOT),$(DEFAULT_NDK_ROOT))
-NDK_TOOLCHAIN ?= $(if $(NDK_ROOT),$(NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64)
-NDK_CC := $(NDK_TOOLCHAIN)/bin/aarch64-linux-android$(API)-clang
+# Host tag / exe suffix: NDK prebuilts ship .cmd wrapper scripts on Windows,
+# extensionless ELF-shebang scripts on Linux/macOS.
+NDK_HOST_TAG ?= $(if $(filter Windows_NT,$(OS)),windows-x86_64,linux-x86_64)
+NDK_EXE := $(if $(filter windows-x86_64,$(NDK_HOST_TAG)),.cmd,)
+NDK_TOOLCHAIN ?= $(if $(NDK_ROOT),$(NDK_ROOT)/toolchains/llvm/prebuilt/$(NDK_HOST_TAG))
+NDK_CC := $(NDK_TOOLCHAIN)/bin/aarch64-linux-android$(API)-clang$(NDK_EXE)
 HOST_CLANG ?= clang
 SYSROOT ?= $(if $(NDK_TOOLCHAIN),$(NDK_TOOLCHAIN)/sysroot)
 RESOURCE_DIR ?= $(if $(NDK_TOOLCHAIN),$(NDK_TOOLCHAIN)/lib/clang/21)
@@ -129,7 +133,7 @@ EMBED_EXP := $(EMBEDDIR)/cve_exp64_arm64
 EXP_SRCS := $(call pick_src,exp64/main.c) $(call pick_src,exp64/stack.c)
 
 API64 ?= $(API)
-NDK_CC64 := $(NDK_TOOLCHAIN)/bin/aarch64-linux-android$(API64)-clang
+NDK_CC64 := $(NDK_TOOLCHAIN)/bin/aarch64-linux-android$(API64)-clang$(NDK_EXE)
 HOST_CC64 ?= aarch64-linux-android$(API64)-clang
 
 ifneq ($(and $(USE_BUILDROOT),$(wildcard $(BUILDROOT_CC))),)
@@ -161,7 +165,7 @@ EXP_SRCS := \
   $(wildcard $(TARGET_DIR)/exp32/tls_align.S)
 
 API32 ?= 28
-NDK_CC32 := $(NDK_TOOLCHAIN)/bin/armv7a-linux-androideabi$(API32)-clang
+NDK_CC32 := $(NDK_TOOLCHAIN)/bin/armv7a-linux-androideabi$(API32)-clang$(NDK_EXE)
 HOST_CC32 ?= arm-linux-gnueabi-gcc
 
 ifeq ($(shell command -v $(HOST_CC32) >/dev/null 2>&1 && echo yes),yes)
