@@ -18,11 +18,12 @@ All credit goes to the respective authors.
 - Baseband : M556BXXU4AYB4,M556BXXU4AYB4
 - Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
 
-https://github.com/user-attachments/assets/e4a82bdb-5545-4eee-8cf4-bfaba96494fc
+https://github.com/user-attachments/assets/d252c53c-79a3-42e4-928f-12acf37466af
 
-<img width="1080" height="3346" alt="POC" src="https://github.com/user-attachments/assets/6e18aaeb-0a57-41f0-893d-6237536c557d" />
-<img width="1080" height="2400" alt="POC" src="https://github.com/user-attachments/assets/5ebfcdd7-d0fa-44d1-899a-ca17e10f239d" />
-<img width="1080" height="2400" alt="POC" src="https://github.com/user-attachments/assets/26aafb6e-ceb7-45cb-9009-ce81943675b4" />
+<img width="1080" height="3346" alt="poc3" src="https://github.com/user-attachments/assets/b79744f3-df65-4994-bfe6-83bb4653c139" />
+<img width="1080" height="2400" alt="poc2" src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" />
+<img width="1080" height="2400" alt="poc1" src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185" />
+
 
 # IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
 ```sh
@@ -129,5 +130,6 @@ adb shell "/data/local/tmp/cve-2026-43499-root -c 'id'"
 adb install KernelSU_Next_v3.3.0-release.apk
 adb push kernelsu-android12-5.10.ko /data/local/tmp/kernelsu-android12-5.10.ko
 adb shell "/data/local/tmp/cve-2026-43499-root -c 'insmod /data/local/tmp/kernelsu-android12-5.10.ko'"
-
 ```
+
+
