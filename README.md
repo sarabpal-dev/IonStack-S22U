@@ -18,12 +18,14 @@ All credit goes to the respective authors.
 - Baseband : M556BXXU4AYB4,M556BXXU4AYB4
 - Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
 
-https://github.com/user-attachments/assets/d252c53c-79a3-42e4-928f-12acf37466af
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185"width="300"></td>
+    <td><img src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" width="300"></td>
+  </tr>
+</table>
 
-<img width="1080" height="3346" alt="poc3" src="https://github.com/user-attachments/assets/b79744f3-df65-4994-bfe6-83bb4653c139" />
-<img width="1080" height="2400" alt="poc2" src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" />
-<img width="1080" height="2400" alt="poc1" src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185" />
-
+https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f
 
 # IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
 ```sh
