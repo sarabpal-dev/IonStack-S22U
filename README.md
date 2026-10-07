@@ -1,9 +1,7 @@
 Profile ported to Samsung Galaxy M55: https://github.com/sarabpal-dev/IonStack-S22U. 
 All credit goes to the respective authors.
 
-======Specs=======
-==================
-
+# Specs
 - Device Name : Galaxy M55 5G
 - Model: SM-M556B
 - SoC : Qualcomm Snapdragon 7 Gen 1
@@ -18,14 +16,14 @@ All credit goes to the respective authors.
 - Baseband : M556BXXU4AYB4,M556BXXU4AYB4
 - Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
 
+<video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
+
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185"width="300"></td>
     <td><img src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" width="300"></td>
   </tr>
 </table>
-
-<video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
 
 
 # IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
@@ -119,18 +117,26 @@ make:
 ```sh
 make PROJECT=M556BXXU4AYB4 clean preload root-helper
 ```
-on success, put this files on adb folder:
+on success, push this files via adb:
 ```sh
 adb push cve-2026-43499 /data/local/tmp/cve-2026-43499
 adb push cve-2026-43499-root /data/local/tmp/cve-2026-43499-root
 adb push cve-exp32 /data/local/tmp/cve-exp32
 adb shell chmod 755 /data/local/tmp/cve-exp32
 adb shell chmod 755 /data/local/tmp/cve-2026-43499 /data/local/tmp/cve-2026-43499-root
-
+```
+Run the exploit via adb:
+```sh
 adb shell "LD_PRELOAD=/data/local/tmp/cve-2026-43499 sh"
 adb shell "/data/local/tmp/cve-2026-43499-root"
 adb shell "/data/local/tmp/cve-2026-43499-root -c 'id'"
-
+```
+Or use TonySamaaaa script on device side via Termux Wireless debug(exploit.sh):
+```sh
+adb push exploit.sh /data/local/tmp/exploit.sh
+adb shell sh /data/local/tmp/exploit.sh
+```sh
+```sh
 adb install KernelSU_Next_v3.3.0-release.apk
 adb push kernelsu-android12-5.10.ko /data/local/tmp/kernelsu-android12-5.10.ko
 adb shell "/data/local/tmp/cve-2026-43499-root -c 'insmod /data/local/tmp/kernelsu-android12-5.10.ko'"
