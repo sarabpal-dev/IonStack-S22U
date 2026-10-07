@@ -25,7 +25,7 @@ All credit goes to the respective authors.
   </tr>
 </table>
 
-https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f
+<img src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f>
 
 # IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
 ```sh
@@ -59,7 +59,8 @@ gcc -O2 kallsyms.c -o kallsyms
 ```sh
 ./extract-ikconfig Image > config.txt
 ```
-keep Image file inside "target_generator" folder:
+keep Image file inside "target_generator" folder
+generate target.h
 ```sh
 python3 generate_target.py kallsyms.txt config.txt Image --template target.h -o target.h
 ```
