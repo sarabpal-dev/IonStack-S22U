@@ -25,7 +25,8 @@ All credit goes to the respective authors.
   </tr>
 </table>
 
-<img src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f">
+<video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
+
 
 # IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
 ```sh
