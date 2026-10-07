@@ -22,7 +22,7 @@
  *   5. worker_pool = 896 bytes
  */
 
-#define BUILD_VARIANT_LABEL "b0q_taro_v5.10"
+#define BUILD_VARIANT_LABEL "m55xq_taro_v5.10"
 #ifndef BUILD_FINGERPRINT
 #define BUILD_FINGERPRINT "samsung/m55xqddxx/m55xq:14/UP1A.231005.007/M556BXXU4AYB4:user/release-keys"
 #endif
