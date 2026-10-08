@@ -52,7 +52,7 @@ git clone https://github.com/thiagobarrios/IonStack-M556B.git
 ```sh
 cd IonStack-M556B/target_generator
 ```
-put your "boot.img.lz4" (search your fm on samfw) inside "IonStack-M556B/target_generator/" and execute target_generator/lz4_to_image_kernel.py:
+put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M556B/target_generator/" and execute target_generator/lz4_to_image_kernel.py:
 ```sh
 python3 lz4_to_image_kernel.py
 ```
