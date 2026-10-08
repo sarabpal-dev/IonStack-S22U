@@ -2,6 +2,7 @@ Profile ported to Samsung Galaxy M55: https://github.com/sarabpal-dev/IonStack-S
 All credit goes to the respective authors.
 
 # Specs
+```text
 - Device Name : Galaxy M55 5G
 - Model: SM-M556B
 - SoC: Qualcomm Snapdragon 7 Gen 1
@@ -16,7 +17,7 @@ All credit goes to the respective authors.
 - Build Number : UP1A.231005.007.M556BXXU4AYB4
 - Baseband : M556BXXU4AYB4,M556BXXU4AYB4
 - Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
-
+```
   <video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
   <table>
     <tr>
