@@ -21,10 +21,13 @@ All credit goes to the respective authors.
   <table>
     <tr>
       <td>
-        <img src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185"width="300">
+        <img src="https://github.com/user-attachments/assets/3410b40f-1e09-4f9b-8c1a-dc1c64826185"width="300"/>
       </td>
       <td>
-        <img src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" width="300">
+        <img src="https://github.com/user-attachments/assets/1502c646-a739-4be6-8b91-995a57185f6a" width="300"/>
+      </td>
+      <td>
+        <img src="https://github.com/user-attachments/assets/60ee5e3b-d9f4-4d59-b55a-408b4f0cde70" width="300" />
       </td>
     </tr>
   </table>
