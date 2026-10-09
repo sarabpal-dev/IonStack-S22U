@@ -57,7 +57,7 @@ put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M55
 ```sh
 python3 lz4_to_image_kernel.py
 ```
-extract symbols:
+extract symbols (keep Image file inside the "target_generator" folder):
 ```sh
 gcc -O2 kallsyms.c -o kallsyms
 ```
@@ -67,7 +67,7 @@ gcc -O2 kallsyms.c -o kallsyms
 ```sh
 ./extract-ikconfig Image > config.txt
 ```
-keep Image file inside the "target_generator" folder and generate target.h
+generate target.h
 ```sh
 python3 generate_target.py kallsyms.txt config.txt Image --template target.h -o target.h
 ```
