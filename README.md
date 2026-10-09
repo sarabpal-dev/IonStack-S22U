@@ -53,21 +53,22 @@ git clone https://github.com/thiagobarrios/IonStack-M556B.git
 ```sh
 cd IonStack-M556B/target_generator
 ```
-put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M556B/target_generator/" and execute target_generator/lz4_to_image_kernel.py:
+put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M556B/target_generator/" and execute target_generator/lz4_to_image_kernel.py, Image file will be generated:
 ```sh
 python3 lz4_to_image_kernel.py
 ```
-extract symbols (keep Image file inside the "target_generator" folder):
+extract symbols:
 ```sh
 gcc -O2 kallsyms.c -o kallsyms
 ```
 ```sh
+keep Image file inside the "target_generator" folder and run: 
 ./kallsyms Image
 ```
 ```sh
 ./extract-ikconfig Image > config.txt
 ```
-generate target.h
+generate target.h:
 ```sh
 python3 generate_target.py kallsyms.txt config.txt Image --template target.h -o target.h
 ```
