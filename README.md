@@ -3,20 +3,20 @@ All credit goes to the respective authors.
 
 # Specs
 ```text
-- Device Name : Galaxy M55 5G
+- Device Name: Galaxy M55 5G
 - Model: SM-M556B
 - SoC: Qualcomm Snapdragon 7 Gen 1
 - Region: ZTO - Brazil
 - Fingerprint: samsung/m55xqddxx/qssi:14/UP1A.231005.007/M556BXXU4AYB4:user/release-keys
-- Device : m55xq
-- Board : taro
-- Code Name : Android 14
-- API Level : 34
-- One UI : 6.1
-- Security Patch Level : 2025-02-01
-- Build Number : UP1A.231005.007.M556BXXU4AYB4
-- Baseband : M556BXXU4AYB4,M556BXXU4AYB4
-- Kernel : 5.10.226-android12-9-28566349-abM556BXXU4AYB4
+- Device: m55xq
+- Board: taro
+- Code Name: Android 14
+- API Level: 34
+- One UI: 6.1
+- Security Patch Level: 2025-02-01
+- Build Number: UP1A.231005.007.M556BXXU4AYB4
+- Baseband: M556BXXU4AYB4,M556BXXU4AYB4
+- Kernel: 5.10.226-android12-9-28566349-abM556BXXU4AYB4
 ```
   <video src="https://github.com/user-attachments/assets/b9338240-abbc-4eee-b269-9cc6ebf4375f" width="100%" controls autoplay muted></video>
   <table>
@@ -34,7 +34,7 @@ All credit goes to the respective authors.
   </table>
 
 
-# IF YOU WANT BUILD YOUR OWN M55 FOLLOW THE STEPS:
+# IF YOU WANT BUILD YOUR OWN M55, FOLLOW THE STEPS:
 ```sh
 sudo apt update && upgrade
 sudo apt install python3 python3-pip ipython3
@@ -57,6 +57,7 @@ put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M55
 ```sh
 python3 lz4_to_image_kernel.py
 ```
+extract symbols:
 ```sh
 gcc -O2 kallsyms.c -o kallsyms
 ```
@@ -66,8 +67,7 @@ gcc -O2 kallsyms.c -o kallsyms
 ```sh
 ./extract-ikconfig Image > config.txt
 ```
-keep Image file inside "target_generator" folder
-generate target.h
+keep Image file inside the "target_generator" folder and generate target.h
 ```sh
 python3 generate_target.py kallsyms.txt config.txt Image --template target.h -o target.h
 ```
