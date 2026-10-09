@@ -37,6 +37,7 @@ The following pre-configured target profiles are included in `src/targets/<TARGE
 | **Galaxy S22 Ultra** | SM-S908B | `S908BXXSMGZB2` | **Samsung Exynos 2200** | Android 16 | Europe / International |
 | **Galaxy S22 Ultra** | SM-S908B | `S908BXXSNGZD7` | **Samsung Exynos 2200** | Android 16 | Europe / International |
 | **Galaxy S22 Ultra** | SM-S908E | `S908EXXSEGZE3` | **Qualcomm Snapdragon 8 Gen 1** | Android 16 | Global / Latin America / Asia / Africa |
+| **Galaxy S22 Ultra** | SM-S908E | `S908EXXSEGZH4` | **Qualcomm Snapdragon 8 Gen 1** | Android 16 | Global / Latin America / Asia / Africa |
 | **Galaxy S22 Ultra** | SM-S908N | `S908NKSS9GZE5` | **Qualcomm Snapdragon 8 Gen 1** | Android 16 | South Korea |
 | **Galaxy S22 Ultra** | SM-S908W | `S908WVLS8FYG7` | **Qualcomm Snapdragon 8 Gen 1** | Android 15 | Canada (Baseline Profile) |
 | **Galaxy S22 Ultra** | SM-S908W | `S908WVLSAGZE3` | **Qualcomm Snapdragon 8 Gen 1** | Android 16 | Canada |
