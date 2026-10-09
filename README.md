@@ -118,7 +118,6 @@ ls $ANDROID_NDK_HOME
 go for main:
 ```sh
 cd ..
-cd IonStack-M556B
 ```
 make:
 ```sh
