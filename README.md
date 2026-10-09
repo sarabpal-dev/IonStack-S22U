@@ -57,12 +57,12 @@ put your "boot.img.lz4" (search your fw on samfw, AP_ file) inside "IonStack-M55
 ```sh
 python3 lz4_to_image_kernel.py
 ```
-extract symbols:
+compile kallsyms:
 ```sh
 gcc -O2 kallsyms.c -o kallsyms
 ```
+keep Image file inside the "target_generator" dir and run: 
 ```sh
-keep Image file inside the "target_generator" folder and run: 
 ./kallsyms Image
 ```
 ```sh
