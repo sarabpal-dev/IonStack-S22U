@@ -190,14 +190,14 @@ is retried automatically. Successful execution restores `ashmem_misc.fops`, swit
 
 The exploit above only holds root for the current boot. To get a Manager app and `su`-style control for the rest of the session, load [KernelSU-Next](https://github.com/sarabpal-dev/KernelSU-Next) as a late-load kernel module through the root helper.
 
-1. Download both release assets from [`v3.3.0-android12-5.10`](https://github.com/sarabpal-dev/KernelSU-Next/releases/tag/v3.3.0-android12-5.10):
-   - [`KernelSU_Next_v3.3.0-release.apk`](https://github.com/sarabpal-dev/KernelSU-Next/releases/download/v3.3.0-android12-5.10/KernelSU_Next_v3.3.0-release.apk) — Manager app
-   - [`kernelsu-android12-5.10.ko`](https://github.com/sarabpal-dev/KernelSU-Next/releases/download/v3.3.0-android12-5.10/kernelsu-android12-5.10.ko) — LKM kernel module
+1. Download both release assets from [`v3.4.0-android12-5.10`](https://github.com/sarabpal-dev/KernelSU-Next/releases/tag/v3.4.0):
+   - [`KernelSU_Next_v3.4.0-android12-5.10_33303-release.apk`](https://github.com/sarabpal-dev/KernelSU-Next/releases/download/v3.4.0/KernelSU_Next_v3.4.0-android12-5.10_33303-release.apk) — Manager app
+   - [`kernelsu-android12-5.10.ko`](https://github.com/sarabpal-dev/KernelSU-Next/releases/download/v3.4.0/kernelsu-android12-5.10.ko) — LKM kernel module
 
 2. Install the Manager APK:
 
 ```sh
-adb install KernelSU_Next_v3.3.0-release.apk
+adb install KernelSU_Next_v3.4.0-android12-5.10_33303-release.apk 
 ```
 
 3. Push the module and load it through the root helper obtained above:
